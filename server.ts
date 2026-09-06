@@ -94,7 +94,7 @@ const firebaseProjectIdEnv = process.env.FIREBASE_PROJECT_ID || 'studio-25692736
 }
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 app.use(express.json());
 
@@ -1192,6 +1192,290 @@ app.get("/api/iptv/stats", authenticate, authorize(['SUPER_ADMIN']), (req, res) 
     multiTenantEnabled: true,
     defaultScope: "NATIONAL"
   });
+});
+
+// ==========================================
+// CAMERA & VISION API - ADVANCED MODULE
+// ==========================================
+
+// Helper: Check Camera Access
+async function checkCameraAccess(req: AuthenticatedRequest, cameraId: string, requiredPermission: 'READ_ONLY' | 'AUTHORIZED_OPERATOR' | 'ADMIN' = 'READ_ONLY') {
+  const db = getDb();
+  const cameraDoc = await db.collection('cameras').doc(cameraId).get();
+  
+  if (!cameraDoc.exists) return { allowed: false, error: 'Caméra introuvable', code: 'NOT_FOUND', status: 404 };
+  
+  const camera = cameraDoc.data();
+  
+  // 1. Super Admin always allowed
+  if (req.user.role === 'SUPER_ADMIN') return { allowed: true, camera };
+  
+  // 2. Owner always allowed
+  if (camera.ownerId === req.user.uid) return { allowed: true, camera };
+  
+  // 3. Agency Admin allowed if camera belongs to agency
+  if (req.user.role === 'ADMIN_AGENCE' && camera.agencyId === req.user.agencyId) return { allowed: true, camera };
+  
+  // 4. Hotel Admin allowed if camera belongs to hotel
+  if (req.user.role === 'ADMIN_HOTEL' && camera.hotelId === req.user.hotelId) return { allowed: true, camera };
+
+  // 5. Check Shares
+  const sharesSnapshot = await db.collection('camera_shares')
+    .where('cameraId', '==', cameraId)
+    .where('granteeId', '==', req.user.uid)
+    .where('status', '==', 'ACTIVE')
+    .get();
+    
+  if (!sharesSnapshot.empty) {
+    const share = sharesSnapshot.docs[0].data();
+    // Check if permission is sufficient
+    const perms: Record<string, number> = { 'ADMIN': 3, 'AUTHORIZED_OPERATOR': 2, 'READ_ONLY': 1 };
+    if (perms[share.permission] >= perms[requiredPermission]) {
+      return { allowed: true, camera };
+    }
+  }
+
+  return { allowed: false, error: 'Accès refusé à cette caméra', code: 'ACCESS_DENIED', status: 403 };
+}
+
+// POST /api/cameras - Create
+app.post("/api/cameras", authenticate, async (req: AuthenticatedRequest, res) => {
+  try {
+    const cameraData = req.body;
+    const db = getDb();
+    
+    const newCamera = {
+      ...cameraData,
+      id: db.collection('cameras').doc().id,
+      ownerId: req.user.uid,
+      ownerType: req.user.role === 'VOYAGEUR' ? 'Traveler' : (req.user.role === 'ADMIN_AGENCE' ? 'Agency' : 'Global'),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      status: 'Incomplète',
+      statusCode: 'INCOMPLETE_CONFIG'
+    };
+
+    if (req.user.role === 'ADMIN_AGENCE') newCamera.agencyId = req.user.agencyId;
+    if (req.user.role === 'ADMIN_HOTEL') newCamera.hotelId = req.user.hotelId;
+
+    await db.collection('cameras').doc(newCamera.id).set(newCamera);
+    sendResponse(res, true, newCamera, 'Caméra ajoutée avec succès', null, 201);
+  } catch (error: any) {
+    sendResponse(res, false, null, error.message, 'INTERNAL_ERROR', 500);
+  }
+});
+
+// GET /api/cameras - List
+app.get("/api/cameras", authenticate, async (req: AuthenticatedRequest, res) => {
+  try {
+    const db = getDb();
+    const ownedSnapshot = await db.collection('cameras').where('ownerId', '==', req.user.uid).get();
+    let cameras = ownedSnapshot.docs.map(doc => doc.data());
+
+    const sharedSnapshot = await db.collection('camera_shares')
+      .where('granteeId', '==', req.user.uid)
+      .where('status', '==', 'ACTIVE')
+      .get();
+    
+    if (!sharedSnapshot.empty) {
+      const sharedIds = sharedSnapshot.docs.map(doc => doc.data().cameraId);
+      for (const cid of sharedIds) {
+        const cdoc = await db.collection('cameras').doc(cid).get();
+        if (cdoc.exists) cameras.push(cdoc.data());
+      }
+    }
+    
+    if (req.user.role === 'ADMIN_AGENCE' && req.user.agencyId) {
+      const agencyCams = await db.collection('cameras').where('agencyId', '==', req.user.agencyId).get();
+      cameras = [...cameras, ...agencyCams.docs.map(doc => doc.data())];
+    }
+
+    if (req.user.role === 'SUPER_ADMIN') {
+      const allCams = await db.collection('cameras').limit(100).get();
+      cameras = allCams.docs.map(doc => doc.data());
+    }
+    
+    const uniqueCameras = Array.from(new Map(cameras.map(c => [c.id, c])).values());
+    sendResponse(res, true, uniqueCameras);
+  } catch (error: any) {
+    sendResponse(res, false, null, error.message, 'INTERNAL_ERROR', 500);
+  }
+});
+
+// GET /api/cameras/:cameraId - Detail
+app.get("/api/cameras/:cameraId", authenticate, async (req: AuthenticatedRequest, res) => {
+  const access = await checkCameraAccess(req, req.params.cameraId);
+  if (!access.allowed) return sendResponse(res, false, null, access.error, access.code, access.status || 403);
+  sendResponse(res, true, access.camera);
+});
+
+// PATCH /api/cameras/:cameraId - Update
+app.patch("/api/cameras/:cameraId", authenticate, async (req: AuthenticatedRequest, res) => {
+  const access = await checkCameraAccess(req, req.params.cameraId, 'AUTHORIZED_OPERATOR');
+  if (!access.allowed) return sendResponse(res, false, null, access.error, access.code, access.status || 403);
+  
+  try {
+    const updates = req.body;
+    delete updates.id;
+    delete updates.ownerId;
+    delete updates.createdAt;
+
+    await getDb().collection('cameras').doc(req.params.cameraId).update({
+      ...updates,
+      updatedAt: new Date().toISOString()
+    });
+
+    const updated = await getDb().collection('cameras').doc(req.params.cameraId).get();
+    sendResponse(res, true, updated.data(), 'Caméra mise à jour');
+  } catch (error: any) {
+    sendResponse(res, false, null, error.message, 'INTERNAL_ERROR', 500);
+  }
+});
+
+// DELETE /api/cameras/:cameraId - Delete
+app.delete("/api/cameras/:cameraId", authenticate, async (req: AuthenticatedRequest, res) => {
+  const access = await checkCameraAccess(req, req.params.cameraId, 'ADMIN');
+  if (!access.allowed) return sendResponse(res, false, null, access.error, access.code, access.status || 403);
+  
+  try {
+    await getDb().collection('cameras').doc(req.params.cameraId).delete();
+    sendResponse(res, true, null, 'Caméra supprimée');
+  } catch (error: any) {
+    sendResponse(res, false, null, error.message, 'INTERNAL_ERROR', 500);
+  }
+});
+
+// POST /api/cameras/:cameraId/session - Video Session
+app.post("/api/cameras/:cameraId/session", authenticate, async (req: AuthenticatedRequest, res) => {
+  const { cameraId } = req.params;
+  const { mode = 'P2P' } = req.body;
+  
+  const access = await checkCameraAccess(req, cameraId);
+  if (!access.allowed) return sendResponse(res, false, null, access.error, access.code, access.status || 403);
+
+  try {
+    const db = getDb();
+    const sessionId = db.collection('camera_sessions').doc().id;
+    const expiresAt = new Date(Date.now() + 3600 * 1000).toISOString();
+
+    const session = {
+      id: sessionId,
+      cameraId,
+      userId: req.user.uid,
+      mode,
+      status: 'ACTIVE',
+      createdAt: new Date().toISOString(),
+      expiresAt,
+      metadata: { clientIp: req.ip, userAgent: req.headers['user-agent'] }
+    };
+
+    await db.collection('camera_sessions').doc(sessionId).set(session);
+    
+    sendResponse(res, true, {
+      session,
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+      relayUrl: mode === 'RELAY' ? `wss://relay.ivoirexpress.ci/stream/${sessionId}` : null
+    });
+  } catch (error: any) {
+    sendResponse(res, false, null, error.message, 'INTERNAL_ERROR', 500);
+  }
+});
+
+// POST /api/cameras/:cameraId/shares - Share
+app.post("/api/cameras/:cameraId/shares", authenticate, async (req: AuthenticatedRequest, res) => {
+  const { cameraId } = req.params;
+  const { granteeEmail, permission = 'READ_ONLY', expiresAt } = req.body;
+
+  const access = await checkCameraAccess(req, cameraId, 'ADMIN');
+  if (!access.allowed) return sendResponse(res, false, null, access.error, access.code, access.status || 403);
+
+  try {
+    const db = getDb();
+    const userSnapshot = await db.collection('users').where('email', '==', granteeEmail).get();
+    if (userSnapshot.empty) return sendResponse(res, false, null, 'Utilisateur destinataire introuvable', 'USER_NOT_FOUND', 404);
+    
+    const grantee = userSnapshot.docs[0].data();
+    const shareId = db.collection('camera_shares').doc().id;
+    const newShare = {
+      id: shareId,
+      cameraId,
+      ownerId: req.user.uid,
+      granteeId: grantee.id,
+      granteeEmail: grantee.email,
+      permission,
+      status: 'ACTIVE',
+      createdAt: new Date().toISOString(),
+      expiresAt: expiresAt || null
+    };
+
+    await db.collection('camera_shares').doc(shareId).set(newShare);
+    sendResponse(res, true, newShare, 'Caméra partagée avec succès');
+  } catch (error: any) {
+    sendResponse(res, false, null, error.message, 'INTERNAL_ERROR', 500);
+  }
+});
+
+// GET /api/cameras/:cameraId/shares - List Shares
+app.get("/api/cameras/:cameraId/shares", authenticate, async (req: AuthenticatedRequest, res) => {
+  const access = await checkCameraAccess(req, req.params.cameraId, 'ADMIN');
+  if (!access.allowed) return sendResponse(res, false, null, access.error, access.code, access.status || 403);
+
+  try {
+    const snapshot = await getDb().collection('camera_shares').where('cameraId', '==', req.params.cameraId).get();
+    sendResponse(res, true, snapshot.docs.map(doc => doc.data()));
+  } catch (error: any) {
+    sendResponse(res, false, null, error.message, 'INTERNAL_ERROR', 500);
+  }
+});
+
+// POST /api/cameras/signal - P2P Signaling
+app.post("/api/cameras/signal", authenticate, async (req: AuthenticatedRequest, res) => {
+  try {
+    const { sessionId, to, type, payload } = req.body;
+    const db = getDb();
+    
+    const sessionDoc = await db.collection('camera_sessions').doc(sessionId).get();
+    if (!sessionDoc.exists) return sendResponse(res, false, null, 'Session introuvable', 'SESSION_NOT_FOUND', 404);
+    
+    const signal = {
+      id: db.collection('camera_signals').doc().id,
+      sessionId,
+      from: req.user.uid,
+      to,
+      type,
+      payload,
+      timestamp: new Date().toISOString()
+    };
+
+    await db.collection('camera_signals').doc(signal.id).set(signal);
+    sendResponse(res, true, { status: 'Signal relayé' });
+  } catch (error: any) {
+    sendResponse(res, false, null, error.message, 'INTERNAL_ERROR', 500);
+  }
+});
+
+// GET /api/cameras/stats - Supervision (Global)
+app.get("/api/cameras/stats", authenticate, authorize(['SUPER_ADMIN']), async (req, res) => {
+  try {
+    const db = getDb();
+    const snapshot = await db.collection('cameras').get();
+    const cameras = snapshot.docs.map(doc => doc.data());
+    
+    const stats = {
+      total: cameras.length,
+      online: cameras.filter(c => c.statusCode === 'ONLINE' || c.status === 'En direct').length,
+      offline: cameras.filter(c => c.statusCode === 'OFFLINE' || c.status === 'Hors ligne').length,
+      alerts: cameras.filter(c => c.statusCode === 'ALERT').length,
+      byType: cameras.reduce((acc: any, c) => {
+        acc[c.type] = (acc[c.type] || 0) + 1;
+        return acc;
+      }, {})
+    };
+    
+    sendResponse(res, true, stats);
+  } catch (error: any) {
+    sendResponse(res, false, null, error.message, 'INTERNAL_ERROR', 500);
+  }
 });
 
 // Setup Vite Development Middleware or Static Assets Production Serving

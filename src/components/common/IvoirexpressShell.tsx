@@ -232,188 +232,58 @@ export const IvoirexpressShell: React.FC<IvoirexpressShellProps> = ({
         </header>
       ) : (
         /* STANDARD OFFICIAL HEADER - 100% PERMANENTLY FIXED AT TOP */
-        <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-[#E5E7EB] text-[#1F2937] h-16 px-4 sm:px-6 flex items-center justify-between shadow-xs">
+        <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-slate-100 text-[#1F2937] h-16 px-4 flex items-center justify-between shadow-xs">
           
-          {/* Left: Hamburger menu + Logo & Tagline */}
+          {/* Left: Logo & Tagline */}
           <div className="flex items-center space-x-3">
             <button
               onClick={() => setMobileDrawerOpen(true)}
-              className="p-2 rounded-[12px] bg-[#F3F4F6] hover:bg-[#E5E7EB] text-[#1F2937] transition-all active:scale-95 lg:hidden"
+              className="p-2 rounded-[12px] bg-slate-50 text-[#1F2937] transition-all lg:hidden"
               title="Ouvrir le Menu Navigation"
             >
               <Menu className="w-5 h-5" />
             </button>
 
-            {/* Logo Brand without bus icon */}
             <div 
               onClick={() => {
                 onTabChange('home');
                 resetScrollToTop();
               }}
-              className="flex items-center cursor-pointer group select-none py-1"
+              className="flex items-center cursor-pointer select-none"
             >
               <div className="text-left">
-                <div className="text-lg sm:text-xl font-black tracking-tight text-[#1F2937] flex items-center leading-none">
-                  <span>IVOIR</span>
+                <div className="text-lg font-black tracking-tight flex items-center leading-none">
+                  <span className="text-[#1F2937]">IVOIR</span>
                   <span className="text-[#F5821F] ml-0.5">Express</span>
                 </div>
-                <div className="text-[10px] text-[#6B7280] font-semibold leading-none mt-1">Hub National CI</div>
+                <div className="text-[10px] text-slate-500 font-bold leading-none mt-1">Voyagez en toute confiance</div>
               </div>
             </div>
           </div>
 
-          {/* Center: Global Search Bar */}
-          <div className="hidden md:flex items-center flex-1 max-w-md mx-6">
-            <div className="relative w-full">
-              <Search className="w-4 h-4 text-[#9CA3AF] absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Rechercher un trajet, un hôtel, une caméra ou IPTV..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 rounded-[12px] bg-[#F3F4F6] border border-[#E5E7EB] text-xs font-medium text-[#1F2937] placeholder-[#9CA3AF] focus:outline-none focus:bg-white focus:border-[#F5821F] transition-all shadow-inner"
+          {/* Right: Notifications & User Avatar */}
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setNotificationsOpen(!notificationsOpen)}
+              className="relative p-2 text-[#1F2937] hover:bg-slate-50 rounded-full transition-all"
+            >
+              <Bell className="w-6 h-6 stroke-[1.5]" />
+              {notifications.some(n => !n.read) && (
+                <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-[#EF4444] rounded-full ring-2 ring-white" />
+              )}
+            </button>
+
+            <div 
+              onClick={() => onTabChange('profile')}
+              className="w-9 h-9 rounded-full overflow-hidden border-2 border-slate-100 cursor-pointer hover:border-[#F5821F]/30 transition-all"
+            >
+              <img 
+                src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80" 
+                alt="Profile" 
+                className="w-full h-full object-cover"
               />
             </div>
           </div>
-
-          {/* Right: Role Switcher, Notifications & User Avatar with Green Dot */}
-          <div className="flex items-center space-x-3">
-            
-            {/* Quick Role Selector - Hidden for Voyageur */}
-            {currentRole !== 'VOYAGEUR' && (
-              <div className="hidden lg:flex items-center space-x-1 bg-[#F3F4F6] p-1 rounded-[12px] border border-[#E5E7EB] text-xs">
-                <span className="text-[10px] uppercase font-semibold text-[#6B7280] px-2">Rôle :</span>
-                {(['VOYAGEUR', 'ADMIN_AGENCE', 'ADMIN_HOTEL', 'SUPER_ADMIN'] as UserRole[]).map((r) => (
-                  <button
-                    key={r}
-                    onClick={() => onRoleSwitch(r)}
-                    className={`px-2.5 py-1 rounded-[8px] text-[10px] font-semibold uppercase transition-all ${
-                      currentRole === r 
-                        ? 'bg-[#F5821F] text-white shadow-xs' 
-                        : 'text-[#4B5563] hover:text-[#1F2937] hover:bg-white'
-                    }`}
-                  >
-                    {r === 'ADMIN_AGENCE' ? 'Agence' : r === 'ADMIN_HOTEL' ? 'Hôtel' : r === 'SUPER_ADMIN' ? 'Admin' : 'Voyageur'}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Notifications Trigger */}
-            <div className="relative">
-              <button
-                onClick={() => setNotificationsOpen(!notificationsOpen)}
-                className="relative p-2 rounded-[12px] bg-[#F3F4F6] hover:bg-[#E5E7EB] text-[#1F2937] transition-all"
-                title="Notifications"
-              >
-                <Bell className="w-5 h-5 text-[#4B5563]" />
-                {notifications.some(n => !n.read) && (
-                  <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-[#EF4444] rounded-full ring-2 ring-white animate-pulse" />
-                )}
-              </button>
-
-              {/* Notifications Dropdown Panel */}
-              {notificationsOpen && (
-                <>
-                  {/* Backdrop overlay for quick dismissal */}
-                  <div 
-                    className="fixed inset-0 z-40 bg-slate-900/30 backdrop-blur-xs sm:bg-transparent"
-                    onClick={() => setNotificationsOpen(false)}
-                  />
-
-                  <div className="fixed inset-x-3 top-16 sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-2.5 w-auto sm:w-96 max-w-md mx-auto sm:mx-0 bg-white border border-[#E5E7EB] rounded-[20px] shadow-2xl z-50 overflow-hidden text-[#1F2937]">
-                    <div className="p-3.5 sm:p-4 border-b border-[#E5E7EB] flex items-center justify-between bg-[#F8FAFC]">
-                      <div className="flex items-center space-x-2">
-                        <Bell className="w-4 h-4 text-[#F5821F]" />
-                        <span className="font-extrabold text-xs text-[#1F2937] uppercase tracking-wider">Notifications Système</span>
-                        {notifications.some(n => !n.read) && (
-                          <span className="px-1.5 py-0.5 rounded-full bg-[#EF4444] text-white text-[10px] font-bold">
-                            {notifications.filter(n => !n.read).length}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <button 
-                          onClick={markAllRead} 
-                          className="text-[11px] text-[#F5821F] font-bold hover:underline"
-                        >
-                          Tout marquer lu
-                        </button>
-                        <button
-                          onClick={() => setNotificationsOpen(false)}
-                          className="p-1 rounded-lg text-[#9CA3AF] hover:text-[#1F2937] hover:bg-[#E5E7EB] transition-colors"
-                          title="Fermer"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="max-h-[65vh] sm:max-h-80 overflow-y-auto divide-y divide-[#E5E7EB]">
-                      {notifications.length === 0 ? (
-                        <div className="p-6 text-center text-xs text-[#9CA3AF]">
-                          Aucune notification pour le moment.
-                        </div>
-                      ) : (
-                        notifications.map((n) => (
-                          <div key={n.id} className={`p-3.5 hover:bg-[#F8FAFC] transition-colors ${!n.read ? 'bg-[#FFE7D1]/30' : ''}`}>
-                            <div className="flex items-start justify-between gap-2">
-                              <span className="font-bold text-xs text-[#1F2937] leading-tight">{n.title}</span>
-                              <span className="text-[10px] text-[#9CA3AF] shrink-0 font-medium">{n.time}</span>
-                            </div>
-                            <p className="text-xs text-[#6B7280] mt-1 leading-normal">{n.desc}</p>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* User Profile Avatar with Presence Dot (+10% horizontal size) */}
-            {currentUser ? (
-              <div className="flex items-center space-x-3 px-3 py-1 bg-[#F8FAFC] border border-[#E5E7EB] rounded-[14px]">
-                <div className="relative shrink-0">
-                  <div className="w-10 h-10 rounded-full bg-[#FFE7D1] text-[#9A3412] font-extrabold text-xs flex items-center justify-center border border-[#FDBA74] shadow-xs">
-                    {currentUser.fullName ? currentUser.fullName.substring(0, 2).toUpperCase() : 'US'}
-                  </div>
-                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#22C55E] rounded-full ring-2 ring-white" title="En ligne" />
-                </div>
-                <div className="hidden sm:block text-left min-w-[95px]">
-                  <div className="text-xs font-bold text-[#1F2937] truncate max-w-[135px]">{currentUser.fullName}</div>
-                  <div className="text-[10px] text-[#22C55E] font-semibold flex items-center space-x-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E] inline-block" />
-                    <span>En ligne</span>
-                  </div>
-                </div>
-                <button
-                  onClick={onLogout}
-                  className="p-1.5 rounded-[10px] bg-white hover:bg-[#FEF2F2] hover:text-[#EF4444] text-[#6B7280] border border-[#E5E7EB] transition-all ml-1 shrink-0"
-                  title="Se Déconnecter"
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={onOpenAuthModal}
-                  className="px-4 py-2 rounded-[14px] bg-[#F5821F] text-white font-bold text-xs hover:bg-[#E07317] transition-all shadow-xs"
-                >
-                  Connexion
-                </button>
-                <button
-                  onClick={onOpenRegister}
-                  className="hidden sm:inline-flex px-3.5 py-2 rounded-[14px] bg-[#F3F4F6] hover:bg-[#E5E7EB] text-[#1F2937] border border-[#E5E7EB] text-xs font-semibold transition-all"
-                >
-                  S'inscrire
-                </button>
-              </div>
-            )}
-
-          </div>
-
         </header>
       )}
 
@@ -564,16 +434,20 @@ export const IvoirexpressShell: React.FC<IvoirexpressShellProps> = ({
 
       {/* ================= 3. PERMANENT BOTTOM NAVIGATION BAR (OFFICIAL DESIGN SYSTEM SPEC) ================= */}
       {currentRole === 'VOYAGEUR' && (
-        <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#E5E7EB] px-3 py-2 flex items-center justify-around shadow-[0_-4px_16px_rgba(0,0,0,0.06)] md:hidden">
+        <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-100 px-3 py-2 flex items-center justify-around shadow-[0_-4px_16px_rgba(0,0,0,0.06)] md:hidden">
           {[
             { id: 'home', label: 'Accueil', icon: Home },
-            { id: 'transport', label: 'Transport', icon: Bus },
-            { id: 'hotels', label: 'Hôtels', icon: Hotel },
-            { id: 'vision', label: 'Vision', icon: Eye },
-            { id: 'tickets', label: 'Profil', icon: User, action: onOpenTicketsWallet },
+            { id: 'transport', label: 'Voyages', icon: Bus },
+            { id: 'reservations', label: 'Réserv.', icon: Ticket, action: onOpenTicketsWallet },
+            { id: 'notifications', label: 'Notif.', icon: Bell },
+            { id: 'profile', label: 'Profil', icon: User },
           ].map((item) => {
             const Icon = item.icon;
-            const isActive = activeTab === item.id;
+            const isActive = activeTab === item.id || (item.id === 'home' && activeTab === 'home');
+            
+            // Special handling for labels to match image
+            const displayLabel = item.label;
+
             return (
               <button
                 key={item.id}
@@ -585,13 +459,12 @@ export const IvoirexpressShell: React.FC<IvoirexpressShellProps> = ({
                     resetScrollToTop();
                   }
                 }}
-                className={`flex flex-col items-center space-y-1 px-3 py-1 rounded-[12px] transition-colors ${
-                  isActive ? 'text-[#F5821F] font-bold' : 'text-[#6B7280] font-medium hover:text-[#1F2937]'
+                className={`flex flex-col items-center space-y-1 px-2 py-1 rounded-[12px] transition-colors ${
+                  isActive ? 'text-[#F5821F]' : 'text-slate-400'
                 }`}
               >
-                <Icon className={`w-5 h-5 ${isActive ? 'text-[#F5821F]' : 'text-[#6B7280]'}`} />
-                <span className="text-[11px] leading-none">{item.label}</span>
-                {isActive && <div className="w-1.5 h-1.5 bg-[#F5821F] rounded-full mt-0.5" />}
+                <Icon className={`w-6 h-6 ${isActive ? 'text-[#F5821F]' : 'text-slate-400'}`} />
+                <span className="text-[10px] font-bold leading-none">{displayLabel}</span>
               </button>
             );
           })}

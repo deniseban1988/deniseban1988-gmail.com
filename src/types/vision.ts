@@ -168,3 +168,40 @@ export interface CameraEventLog {
   description: string;
   user?: string;
 }
+
+export type CameraSessionMode = 'LOCAL' | 'P2P' | 'RELAY';
+export type CameraSessionStatus = 'ACTIVE' | 'EXPIRED' | 'CLOSED' | 'FAILED';
+
+export interface CameraVideoSession {
+  id: string;
+  cameraId: string;
+  userId: string;
+  mode: CameraSessionMode;
+  status: CameraSessionStatus;
+  createdAt: string;
+  expiresAt: string;
+  closedAt?: string;
+  lastHeartbeatAt?: string;
+  metadata?: Record<string, any>;
+}
+
+export interface CameraShare {
+  id: string;
+  cameraId: string;
+  ownerId: string;
+  granteeId: string; // User ID receiving the share
+  granteeEmail: string;
+  permission: 'READ_ONLY' | 'AUTHORIZED_OPERATOR' | 'ADMIN';
+  status: 'ACTIVE' | 'REVOKED' | 'EXPIRED';
+  createdAt: string;
+  expiresAt?: string;
+}
+
+export interface CameraSignalData {
+  sessionId: string;
+  from: string;
+  to: string;
+  type: 'OFFER' | 'ANSWER' | 'ICE_CANDIDATE' | 'RENEGOTIATE';
+  payload: any;
+  timestamp: string;
+}
