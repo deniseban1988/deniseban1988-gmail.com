@@ -907,6 +907,54 @@ export const IxServiceEmojiCard: React.FC<IxIconOnlyShortcutCardProps> = ({
 
 export const IxIconOnlyShortcutCard: React.FC<IxIconOnlyShortcutCardProps> = IxServiceEmojiCard;
 
+/**
+ * IxCompactMenuCard (Spécification 2026)
+ * Carte de service ultra-compacte avec icône à gauche et texte à droite.
+ */
+export interface IxCompactMenuCardProps {
+  id?: string;
+  module: IxPastelModuleType;
+  title: string;
+  emoji?: string;
+  icon?: React.ElementType;
+  onClick?: () => void;
+  className?: string;
+}
+
+export const IxCompactMenuCard: React.FC<IxCompactMenuCardProps> = ({
+  id,
+  module,
+  title,
+  emoji,
+  icon: Icon,
+  onClick,
+  className = ''
+}) => {
+  const color = serviceCardColors[module] || serviceCardColors.settings;
+
+  return (
+    <button
+      type="button"
+      id={id}
+      onClick={onClick}
+      className={`${color.bgCard} ${color.hoverBg} border ${color.borderColor} ${color.hoverBorder} rounded-[18px] p-2.5 flex items-center space-x-3 shadow-sm hover:shadow-md transition-all duration-200 group w-full text-left active:scale-[0.98] ${className}`}
+    >
+      <div className={`w-10 h-10 rounded-[12px] bg-white/60 flex items-center justify-center shrink-0 border border-white/40 group-hover:scale-105 transition-transform shadow-xs`}>
+        {emoji ? (
+          <span className="text-2xl leading-none" role="img" aria-label={title}>
+            {emoji}
+          </span>
+        ) : Icon ? (
+          <Icon className={`w-5 h-5 ${color.textColor}`} />
+        ) : null}
+      </div>
+      <span className={`text-[13px] sm:text-[14px] font-bold ${color.textColor} transition-colors truncate`}>
+        {title}
+      </span>
+    </button>
+  );
+};
+
 /* ==========================================
    12. BANDEAU DE BIENVENUE & PROMOTIONNEL (Spécification 2026)
    ========================================== */

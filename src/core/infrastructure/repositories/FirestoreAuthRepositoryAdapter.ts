@@ -101,10 +101,11 @@ export class FirestoreAuthRepositoryAdapter implements IAuthRepository {
       
       return userProfile;
     } catch (error: any) {
-      console.error(`[Auth] Erreur d'authentification (${error.code}):`, error.message);
       if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+        console.warn(`[Auth] Échec d'authentification (${error.code}) : identifiants incorrects ou non trouvés.`);
         throw new Error("Identifiant ou mot de passe incorrect.");
       }
+      console.error(`[Auth] Erreur inattendue d'authentification (${error.code}):`, error.message);
       throw new Error(`Erreur d'authentification : ${error.code || error.message}`);
     }
   }
@@ -118,16 +119,19 @@ export class FirestoreAuthRepositoryAdapter implements IAuthRepository {
         const userCredential = await createUserWithEmailAndPassword(auth, userData.email, password);
         uid = userCredential.user.uid;
       } catch (error: any) {
-        console.error(`[Auth] Erreur de création de compte (${error.code}):`, error.message);
         if (error.code === 'auth/email-already-in-use') {
+          console.warn(`[Auth] Création de compte annulée : l'email est déjà utilisé.`);
           throw new Error("Un compte d'authentification existe déjà avec cet e-mail.");
         }
         if (error.code === 'auth/weak-password') {
+          console.warn(`[Auth] Création de compte annulée : mot de passe trop faible.`);
           throw new Error("Le mot de passe est trop faible (6 caractères minimum).");
         }
         if (error.code === 'auth/invalid-email') {
+          console.warn(`[Auth] Création de compte annulée : format d'e-mail invalide.`);
           throw new Error("Format d'e-mail invalide.");
         }
+        console.error(`[Auth] Erreur inattendue de création de compte (${error.code}):`, error.message);
         throw new Error(`Erreur lors de la création du compte : ${error.code || error.message}`);
       }
     }

@@ -51,6 +51,7 @@ import { ProtectedRoute } from './components/common/ProtectedRoute';
 import { LandingPage } from './components/common/LandingPage';
 import { ServiceSectionBar } from './components/common/ServiceSectionBar';
 import { IvoirexpressShell } from './components/common/IvoirexpressShell';
+import { UserProfileView } from './components/common/UserProfileView';
 import { IvoirexpressDesignSystemShowcase } from './components/common/IvoirexpressUIKit';
 import { ArchitectureDocsViewer } from './components/common/ArchitectureDocsViewer';
 import { HexagonalProvider, useHexagonalArchitecture } from './core/context/HexagonalArchitectureContext';
@@ -95,10 +96,10 @@ function AppContent() {
   const [iptvFavorites, setIptvFavorites] = useState<string[]>(['tv-rti1', 'vod-1', 'radio-trace']);
 
   // Active Tab for Voyageur, Super Admin, Agency Admin, and Hotel Admin
-  const [activeTravelerTab, setActiveTravelerTab] = useState<'home' | 'transport' | 'hotels' | 'vision' | 'iptv' | 'design-system'>('home');
-  const [activeSuperAdminTab, setActiveSuperAdminTab] = useState<'cards' | 'users' | 'kpis' | 'agencies' | 'hotels' | 'vision' | 'iptv' | 'audit' | 'ai' | 'architecture'>('cards');
-  const [activeAgencyTab, setActiveAgencyTab] = useState<'cards' | 'overview' | 'fleet' | 'drivers' | 'schedules' | 'scanner' | 'analytics' | 'vision' | 'iptv'>('cards');
-  const [activeHotelTab, setActiveHotelTab] = useState<'CARDS' | 'OVERVIEW' | 'HOTEL_PROFILE' | 'ROOMS' | 'BOOKINGS' | 'AUDIT'>('CARDS');
+  const [activeTravelerTab, setActiveTravelerTab] = useState<'home' | 'transport' | 'hotels' | 'vision' | 'iptv' | 'design-system' | 'profile'>('home');
+  const [activeSuperAdminTab, setActiveSuperAdminTab] = useState<'cards' | 'users' | 'kpis' | 'agencies' | 'hotels' | 'vision' | 'iptv' | 'audit' | 'ai' | 'architecture' | 'settings' | 'profile'>('cards');
+  const [activeAgencyTab, setActiveAgencyTab] = useState<'cards' | 'overview' | 'fleet' | 'drivers' | 'schedules' | 'scanner' | 'analytics' | 'vision' | 'iptv' | 'profile'>('cards');
+  const [activeHotelTab, setActiveHotelTab] = useState<'CARDS' | 'OVERVIEW' | 'HOTEL_PROFILE' | 'ROOMS' | 'BOOKINGS' | 'AUDIT' | 'profile'>('CARDS');
   
   // Universal Scroll to Top on any tab, role, or step change
   useScrollToTopOnNav([
@@ -405,9 +406,10 @@ function AppContent() {
       ai: 'super-ai',
       kpis: 'super-kpis',
       audit: 'super-logs',
-      architecture: 'super-bdd'
+      architecture: 'super-bdd',
+      profile: 'profile'
     };
-    currentShellTab = superTabMap[activeSuperAdminTab] || 'super-dash';
+    currentShellTab = activeSuperAdminTab === 'profile' ? 'profile' : superTabMap[activeSuperAdminTab] || 'super-dash';
   } else if (currentRole === 'ADMIN_AGENCE') {
     const agencyTabMap: Record<string, string> = {
       cards: 'agency-dash',
@@ -418,9 +420,10 @@ function AppContent() {
       scanner: 'agency-scanner',
       vision: 'agency-vision',
       iptv: 'agency-iptv',
-      analytics: 'agency-audit'
+      analytics: 'agency-audit',
+      profile: 'profile'
     };
-    currentShellTab = agencyTabMap[activeAgencyTab] || 'agency-dash';
+    currentShellTab = activeAgencyTab === 'profile' ? 'profile' : agencyTabMap[activeAgencyTab] || 'agency-dash';
   } else if (currentRole === 'ADMIN_HOTEL') {
     const hotelTabMap: Record<string, string> = {
       CARDS: 'hotel-dash',
@@ -428,9 +431,10 @@ function AppContent() {
       HOTEL_PROFILE: 'hotel-profile',
       ROOMS: 'hotel-rooms',
       BOOKINGS: 'hotel-bookings',
-      AUDIT: 'hotel-audit'
+      AUDIT: 'hotel-audit',
+      profile: 'profile'
     };
-    currentShellTab = hotelTabMap[activeHotelTab] || 'hotel-dash';
+    currentShellTab = activeHotelTab === 'profile' ? 'profile' : hotelTabMap[activeHotelTab] || 'hotel-dash';
   }
 
   // Zero-Trust Security Gatekeeper: if no authenticated user, render SingleLoginPortal
@@ -461,7 +465,8 @@ function AppContent() {
       onExitBooking={() => setActiveBookingStep(null)}
       onTabChange={(tab) => {
         if (currentRole === 'SUPER_ADMIN') {
-          if (tab === 'super-dash' || tab === 'cards') setActiveSuperAdminTab('cards');
+          if (tab === 'profile') setActiveSuperAdminTab('profile');
+          else if (tab === 'super-dash' || tab === 'cards') setActiveSuperAdminTab('cards');
           else if (tab === 'super-settings' || tab === 'settings') setActiveSuperAdminTab('settings');
           else if (tab === 'super-users' || tab === 'users') setActiveSuperAdminTab('users');
           else if (tab === 'super-agencies' || tab === 'agencies') setActiveSuperAdminTab('agencies');
@@ -477,7 +482,8 @@ function AppContent() {
             setActiveTravelerTab('design-system');
           }
         } else if (currentRole === 'ADMIN_AGENCE') {
-          if (tab === 'agency-dash' || tab === 'cards') setActiveAgencyTab('cards');
+          if (tab === 'profile') setActiveAgencyTab('profile');
+          else if (tab === 'agency-dash' || tab === 'cards') setActiveAgencyTab('cards');
           else if (tab === 'agency-lines' || tab === 'schedules') setActiveAgencyTab('schedules');
           else if (tab === 'agency-fleet' || tab === 'fleet') setActiveAgencyTab('fleet');
           else if (tab === 'agency-drivers' || tab === 'drivers') setActiveAgencyTab('drivers');
@@ -490,7 +496,8 @@ function AppContent() {
             setActiveTravelerTab('design-system');
           }
         } else if (currentRole === 'ADMIN_HOTEL') {
-          if (tab === 'hotel-dash' || tab === 'CARDS') setActiveHotelTab('CARDS');
+          if (tab === 'profile') setActiveHotelTab('profile');
+          else if (tab === 'hotel-dash' || tab === 'CARDS') setActiveHotelTab('CARDS');
           else if (tab === 'hotel-profile' || tab === 'HOTEL_PROFILE') setActiveHotelTab('HOTEL_PROFILE');
           else if (tab === 'hotel-rooms' || tab === 'ROOMS') setActiveHotelTab('ROOMS');
           else if (tab === 'hotel-bookings' || tab === 'BOOKINGS') setActiveHotelTab('BOOKINGS');
@@ -500,7 +507,7 @@ function AppContent() {
             setActiveTravelerTab('design-system');
           }
         } else {
-          if (['home', 'transport', 'hotels', 'vision', 'iptv', 'design-system'].includes(tab)) {
+          if (['home', 'transport', 'hotels', 'vision', 'iptv', 'design-system', 'profile'].includes(tab)) {
             if (tab !== 'transport') {
               setActiveBookingStep(null);
             }
@@ -613,6 +620,12 @@ function AppContent() {
               <IvoirexpressDesignSystemShowcase />
             )}
 
+            {activeTravelerTab === 'profile' && (
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <UserProfileView user={currentUser} role={currentRole} onLogout={handleLogout} />
+              </div>
+            )}
+
           </div>
         )}
 
@@ -627,24 +640,30 @@ function AppContent() {
               setShowAuthModal(true);
             }}
           >
-            <AgencyDashboard
-              agency={selectedAgency}
-              trips={trips}
-              vehicles={vehicles}
-              drivers={drivers}
-              bookings={ticketBookings}
-              cameras={cameras}
-              alerts={alerts}
-              iptvSettings={iptvSettings}
-              activeTab={activeAgencyTab}
-              onTabChange={setActiveAgencyTab}
-              onAddTrip={handleAddTrip}
-              onToggleTripPublication={handleToggleTripPublication}
-              onAddVehicle={handleAddVehicle}
-              onAddDriver={handleAddDriver}
-              onValidateTicket={handleValidateTicket}
-              onAddCamera={handleAddCamera}
-            />
+            {activeAgencyTab === 'profile' ? (
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <UserProfileView user={currentUser} role={currentRole} onLogout={handleLogout} />
+              </div>
+            ) : (
+              <AgencyDashboard
+                agency={selectedAgency}
+                trips={trips}
+                vehicles={vehicles}
+                drivers={drivers}
+                bookings={ticketBookings}
+                cameras={cameras}
+                alerts={alerts}
+                iptvSettings={iptvSettings}
+                activeTab={activeAgencyTab as any}
+                onTabChange={setActiveAgencyTab}
+                onAddTrip={handleAddTrip}
+                onToggleTripPublication={handleToggleTripPublication}
+                onAddVehicle={handleAddVehicle}
+                onAddDriver={handleAddDriver}
+                onValidateTicket={handleValidateTicket}
+                onAddCamera={handleAddCamera}
+              />
+            )}
           </ProtectedRoute>
         )}
 
@@ -659,19 +678,25 @@ function AppContent() {
               setShowAuthModal(true);
             }}
           >
-            <HotelAdminDashboard
-              hotels={hotels}
-              rooms={rooms}
-              bookings={hotelBookings}
-              currentUser={currentUser}
-              activeTab={activeHotelTab}
-              onTabChange={setActiveHotelTab}
-              onUpdateHotel={handleUpdateHotel}
-              onAddRoom={handleAddRoom}
-              onUpdateRoom={handleUpdateRoom}
-              onUpdateBookingStatus={handleUpdateHotelBookingStatus}
-              onCreateHotel={handleCreateHotel}
-            />
+            {activeHotelTab === 'profile' ? (
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <UserProfileView user={currentUser} role={currentRole} onLogout={handleLogout} />
+              </div>
+            ) : (
+              <HotelAdminDashboard
+                hotels={hotels}
+                rooms={rooms}
+                bookings={hotelBookings}
+                currentUser={currentUser}
+                activeTab={activeHotelTab as any}
+                onTabChange={setActiveHotelTab}
+                onUpdateHotel={handleUpdateHotel}
+                onAddRoom={handleAddRoom}
+                onUpdateRoom={handleUpdateRoom}
+                onUpdateBookingStatus={handleUpdateHotelBookingStatus}
+                onCreateHotel={handleCreateHotel}
+              />
+            )}
           </ProtectedRoute>
         )}
 
@@ -686,33 +711,39 @@ function AppContent() {
               setShowAuthModal(true);
             }}
           >
-            <SuperAdminDashboard
-              agencies={agencies}
-              hotels={hotels}
-              cameras={cameras}
-              alerts={alerts}
-              auditLogs={auditLogs}
-              ticketBookings={ticketBookings}
-              hotelBookings={hotelBookings}
-              iptvSettings={iptvSettings}
-              iptvContents={iptvContents}
-              iptvPlaylists={iptvPlaylists}
-              iptvProviders={iptvProviders}
-              iptvNotifications={iptvNotifications}
-              activeTab={activeSuperAdminTab}
-              onTabChange={setActiveSuperAdminTab}
-              onUpdateIptvSettings={setIptvSettings}
-              onAddIptvContent={handleAddIPTVContent}
-              onUpdateIptvContent={handleUpdateIPTVContent}
-              onDeleteIptvContent={handleDeleteIPTVContent}
-              onAddIptvPlaylist={handleAddIPTVPlaylist}
-              onSyncIptvPlaylist={handleSyncIPTVPlaylist}
-              onAddIptvNotification={handleAddIPTVNotification}
-              onToggleAgencyStatus={handleToggleAgencyStatus}
-              onCreateAgency={handleCreateAgency}
-              onCreateHotel={handleCreateHotel}
-              onGenerateAIReport={() => {}}
-            />
+            {activeSuperAdminTab === 'profile' ? (
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <UserProfileView user={currentUser} role={currentRole} onLogout={handleLogout} />
+              </div>
+            ) : (
+              <SuperAdminDashboard
+                agencies={agencies}
+                hotels={hotels}
+                cameras={cameras}
+                alerts={alerts}
+                auditLogs={auditLogs}
+                ticketBookings={ticketBookings}
+                hotelBookings={hotelBookings}
+                iptvSettings={iptvSettings}
+                iptvContents={iptvContents}
+                iptvPlaylists={iptvPlaylists}
+                iptvProviders={iptvProviders}
+                iptvNotifications={iptvNotifications}
+                activeTab={activeSuperAdminTab as any}
+                onTabChange={setActiveSuperAdminTab}
+                onUpdateIptvSettings={setIptvSettings}
+                onAddIptvContent={handleAddIPTVContent}
+                onUpdateIptvContent={handleUpdateIPTVContent}
+                onDeleteIptvContent={handleDeleteIPTVContent}
+                onAddIptvPlaylist={handleAddIPTVPlaylist}
+                onSyncIptvPlaylist={handleSyncIPTVPlaylist}
+                onAddIptvNotification={handleAddIPTVNotification}
+                onToggleAgencyStatus={handleToggleAgencyStatus}
+                onCreateAgency={handleCreateAgency}
+                onCreateHotel={handleCreateHotel}
+                onGenerateAIReport={() => {}}
+              />
+            )}
           </ProtectedRoute>
         )}
 

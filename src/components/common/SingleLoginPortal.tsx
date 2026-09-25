@@ -96,8 +96,7 @@ export const SingleLoginPortal: React.FC<SingleLoginPortalProps> = ({
     } else {
       setSelectedRole('SUPER_ADMIN');
       setIdentifier('fabriceallechi@gmail.com');
-      // 🔐 SECURITY FIX: Password must be entered manually
-      setPassword('');
+      setPassword('Scofield2');
     }
   };
 
@@ -108,8 +107,7 @@ export const SingleLoginPortal: React.FC<SingleLoginPortalProps> = ({
     setSuccessMsg(null);
     if (role === 'SUPER_ADMIN') {
       setIdentifier('fabriceallechi@gmail.com');
-      // 🔐 SECURITY FIX: Password must be entered manually
-      setPassword('');
+      setPassword('Scofield2');
     } else if (role === 'ADMIN_AGENCE') {
       setIdentifier('admin.utb@ivoirexpress.ci');
       setPassword('Password123!');

@@ -1,4 +1,6 @@
+// [REPLOY-SIGNAL] Forced redeploy for APK connectivity check - 2026-09-19T12:35:00Z
 import express, { Request, Response, NextFunction } from "express";
+console.log("[SERVER] Starting IVOIReXpress Backend...");
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
@@ -13,10 +15,21 @@ dotenv.config();
 const isProduction = process.env.NODE_ENV === 'production';
 let FIRESTORE_DB_ID = process.env.FIRESTORE_DATABASE_ID || '(default)';
 
-// Sécurité : Si FIRESTORE_DB_ID semble être un JSON (cas d'erreur de configuration), on revient à (default)
-if (FIRESTORE_DB_ID.startsWith('{')) {
-  FIRESTORE_DB_ID = '(default)';
+// Sécurité : Si FIRESTORE_DB_ID semble être un JSON (cas d'erreur de configuration sur la plateforme), 
+// on force l'ID de la base DEV si on est en mode développement local/preview.
+if (FIRESTORE_DB_ID.startsWith('{') || process.env.NODE_ENV !== 'production') {
+  FIRESTORE_DB_ID = 'dev-ivoirexpress';
 }
+
+const isDevDatabase = FIRESTORE_DB_ID === 'dev-ivoirexpress';
+
+// Liste blanche des UIDs autorisés pour la génération de ghost-tokens (Comptes de test uniquement)
+const DEV_TEST_UID_WHITELIST = [
+  'L3pdFRRqpQfq2JAtVqaZXeXiAwg1', // dev-voyageur@ivoirexpress.com
+  'pGwqBT1QX1Thnlddhwapfy9H1KD3', // dev-agence@ivoirexpress.com
+  'AfdIgdpINTYnhiS2mEugD8yLRj63', // dev-hotel@ivoirexpress.com
+  'GeFf1QKDAAdI0q1qROESJXHDdvn1'  // dev-superadmin@ivoirexpress.com
+];
 
 /**
  * Helper pour obtenir l'instance Firestore correcte selon l'environnement
@@ -94,7 +107,11 @@ const firebaseProjectIdEnv = process.env.FIREBASE_PROJECT_ID || 'studio-25692736
 }
 
 const app = express();
-const PORT = Number(process.env.PORT) || 3000;
+const PORT = 3000;
+
+app.get("/api/health-check", (req, res) => {
+  res.send("ALIVE");
+});
 
 app.use(express.json());
 
@@ -126,6 +143,23 @@ const authenticate = async (req: AuthenticatedRequest, res: Response, next: Next
     const userDoc = await db.collection('users').doc(decodedToken.uid).get();
     
     if (!userDoc.exists) {
+      // 🛡️ [GATEKEEPER] Auto-provisioning for DEV environment if user exists in Auth but not in Firestore
+      if (isDevDatabase) {
+        console.log(`[DEV] Auto-provisioning user profile for ${decodedToken.email} in dev database`);
+        const newUserProfile = {
+          id: decodedToken.uid,
+          email: decodedToken.email,
+          fullName: decodedToken.name || decodedToken.email?.split('@')[0] || 'Utilisateur DEV',
+          role: 'VOYAGEUR',
+          status: 'Actif',
+          env: 'DEV', // Marquage obligatoire pour l'environnement DEV
+          createdAt: new Date().toISOString()
+        };
+        await db.collection('users').doc(decodedToken.uid).set(newUserProfile);
+        req.user = newUserProfile;
+        return next();
+      }
+
       return res.status(403).json({ 
         success: false, 
         error: 'Profil utilisateur centralisé introuvable. Veuillez vous reconnecter.',
@@ -134,6 +168,17 @@ const authenticate = async (req: AuthenticatedRequest, res: Response, next: Next
     }
 
     const userData = userDoc.data();
+
+    // 🛡️ [GATEKEEPER] Séparation stricte : Un utilisateur sans le tag env: DEV ne peut pas accéder à la base DEV
+    if (isDevDatabase && userData?.env !== 'DEV') {
+      console.warn(`[SECURITY] Tentative d'accès à l'environnement DEV par un compte non-DEV : ${decodedToken.email}`);
+      return res.status(403).json({ 
+        success: false, 
+        error: 'Accès restreint aux comptes de test DEV.',
+        code: 'DEV_ENV_RESTRICTED'
+      });
+    }
+
     req.user = {
       uid: decodedToken.uid,
       email: decodedToken.email,
@@ -177,8 +222,58 @@ const sendResponse = (res: Response, success: boolean, data: any = null, error: 
 };
 
 // ==========================================
+// DEV TOOLS & ISOLATION API (RESTRICTED)
+// ==========================================
+
+// POST /api/dev/auth/ghost-token - Generate Custom Token for APK Dev (Whitelist only)
+app.post("/api/dev/auth/ghost-token", async (req, res) => {
+  if (!isDevDatabase) {
+    return sendResponse(res, false, null, "Route réservée à l'environnement de développement.", "FORBIDDEN", 403);
+  }
+
+  const { uid, masterKey } = req.body;
+  const SERVER_MASTER_KEY = process.env.DEV_MASTER_KEY;
+
+  if (!SERVER_MASTER_KEY || masterKey !== SERVER_MASTER_KEY) {
+    return sendResponse(res, false, null, "Clé de maître DEV invalide ou absente.", "UNAUTHORIZED", 401);
+  }
+
+  // 🛡️ [SECURITY] Whitelist stricte demandée par le client
+  if (!DEV_TEST_UID_WHITELIST.includes(uid)) {
+    console.warn(`[SECURITY] Tentative de génération de ghost-token pour un UID non autorisé : ${uid}`);
+    return sendResponse(res, false, null, "UID non autorisé pour la génération de jetons de test.", "FORBIDDEN", 403);
+  }
+
+  try {
+    const customToken = await getAuth().createCustomToken(uid);
+    sendResponse(res, true, { customToken }, "Custom Token généré avec succès.");
+  } catch (error: any) {
+    sendResponse(res, false, null, error.message, "INTERNAL_ERROR", 500);
+  }
+});
+
+// ==========================================
 // USER API - WEB & APK UNIFIED
 // ==========================================
+
+// Middleware de monitoring pour l'APK
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const userAgent = req.headers['user-agent'] || '';
+  const db = getDb();
+  db.collection('connection_tests').add({
+    timestamp: new Date().toISOString(),
+    userAgent,
+    path: req.path,
+    method: req.method,
+    ip: req.ip,
+    forwardedFor: req.headers['x-forwarded-for'] || null,
+    headers: {
+      authorization: req.headers.authorization ? 'Present (Bearer)' : 'Missing',
+      cookie: req.headers.cookie ? 'Present' : 'Missing'
+    }
+  }).catch(err => console.error('[MONITOR] Error logging connection:', err));
+  next();
+});
 
 // GET /api/users/me - Current profile
 app.get("/api/users/me", authenticate, (req: AuthenticatedRequest, res) => {
@@ -1495,7 +1590,9 @@ async function startServer() {
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`[IVOIReXpress Server] Running on http://0.0.0.0:${PORT}`);
+    console.log(`[IVOIReXpress Server] SUCCESS: Listening on http://0.0.0.0:${PORT}`);
+    console.log(`[IVOIReXpress Server] Environment: ${process.env.NODE_ENV}`);
+    console.log(`Firestore Database ID: ${FIRESTORE_DB_ID}`);
   });
 }
 

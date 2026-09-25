@@ -303,6 +303,23 @@ export class SystemConfigEngine {
       this.notify();
       return true;
     } catch (err: any) {
+      const errorMsg = err.message || String(err);
+      const isPermissionError = err.code === 'permission-denied' || 
+                               errorMsg.toLowerCase().includes('permission') || 
+                               errorMsg.toLowerCase().includes('insufficient');
+
+      if (isPermissionError) {
+        this.syncStatus = 'OFFLINE';
+        this.isPersistedOnServer = false;
+        
+        // Logging informatif en DEV uniquement
+        if (import.meta.env.DEV) {
+          console.warn('[SystemConfigEngine] Persistence delayed: Access denied (Waiting for Admin authorization).');
+        }
+        
+        return false;
+      }
+      
       console.error('[SystemConfigEngine] Failed to write to Firestore:', err);
       this.syncStatus = 'ERROR';
       this.lastSyncError = err.message || String(err);

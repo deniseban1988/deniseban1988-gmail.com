@@ -97,6 +97,11 @@ export class AuthUseCases implements IAuthUseCase {
     const pwdVal = AuthDomain.validatePassword(password);
     if (!pwdVal.valid) throw new Error(pwdVal.error);
 
+    const existing = await this.authRepository.findUserByIdentifier(email);
+    if (existing) {
+      throw new Error("Un compte existe déjà avec cet e-mail.");
+    }
+
     const newUserPayload: Partial<UserAccount> = {
       fullName,
       email,

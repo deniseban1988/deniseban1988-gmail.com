@@ -17,7 +17,7 @@ import {
   MapPin,
   Tag
 } from 'lucide-react';
-import { IxPastelShortcutCard, IxIconOnlyShortcutCard, IxServiceEmojiCard, IxWelcomeBanner, IxPromoBanner } from './IvoirexpressUIKit';
+import { IxPastelShortcutCard, IxIconOnlyShortcutCard, IxServiceEmojiCard, IxWelcomeBanner, IxPromoBanner, IxCompactMenuCard } from './IvoirexpressUIKit';
 import { SynchronizedBannersBar } from './SynchronizedBannersBar';
 import { Hotel as HotelType, BusTrip } from '../../types';
 
@@ -52,54 +52,32 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       {/* ================= 1.B BANNIÈRE SYNCHRONISÉE DEPUIS CLOUD FIRESTORE ================= */}
       <SynchronizedBannersBar targetModuleFilter="ACCUEIL" className="my-2" />
 
-      {/* ================= 2. GRILLE DES 4 SERVICES PRINCIPAUX (2x2 AVEC FONDS PASTEL DOUX & EMOJIS CENTRÉS) ================= */}
-      <section aria-label="Services principaux" className="-mt-1 sm:-mt-1.5">
+      {/* ================= 2. SERVICES EN LIGNES DE 2 AVEC BANNIÈRES INTERCALÉES ================= */}
+      
+      {/* Ligne 1: Transport & Hôtellerie */}
+      <section aria-label="Services Ligne 1" className="-mt-1 sm:-mt-1.5">
         <div className="grid grid-cols-2 gap-3 sm:gap-4">
-          
-          <IxServiceEmojiCard
+          <IxCompactMenuCard
             id="service-transport"
             module="transport"
-            ariaLabel="Transport"
-            tooltip="Transport : voyages autocar VIP"
+            title="Transport"
             emoji="🚌"
             icon={Bus}
             onClick={() => onExploreTab('transport')}
           />
 
-          <IxServiceEmojiCard
+          <IxCompactMenuCard
             id="service-hotels"
             module="hotels"
-            ariaLabel="Hôtellerie"
-            tooltip="Hôtellerie : séjours & réservations d'hôtels"
+            title="Hôtellerie"
             emoji="🏨"
             icon={Hotel}
             onClick={() => onExploreTab('hotels')}
           />
-
-          <IxServiceEmojiCard
-            id="service-vision"
-            module="vision"
-            ariaLabel="Surveillance"
-            tooltip="Surveillance : caméras IA & sécurité en direct"
-            emoji="📹"
-            icon={Eye}
-            onClick={() => onExploreTab('vision')}
-          />
-
-          <IxServiceEmojiCard
-            id="service-iptv"
-            module="iptv"
-            ariaLabel="Streaming"
-            tooltip="Streaming TV : chaînes nationales & divertissement à bord"
-            emoji="📺"
-            icon={Tv}
-            onClick={() => onExploreTab('iptv')}
-          />
-
         </div>
       </section>
 
-      {/* ================= 3. BANNIÈRE PROMOTIONNELLE 1 (ENTRE LES CARTES DE SERVICES) ================= */}
+      {/* Bannière 1: Après la ligne 1 */}
       <IxPromoBanner
         title="Offre Vacances : -20% sur la Formule Car + Hôtel !"
         description="Réservez simultanément votre trajet autocar VIP et votre chambre d'hôtel partenaire."
@@ -108,40 +86,68 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         onCtaClick={() => onExploreTab('transport')}
       />
 
-      {/* ================= 4. SERVICES PRINCIPAUX SIMPLIFIÉS : ASSISTANCE & BILLETTERIE (ACCÈS DIRECT PAR ICÔNES ÉPURÉES SANS LIBELLÉ ENCOMBRANT) ================= */}
-      <section aria-label="Services essentiels">
+      {/* Ligne 2: IPTV & Vision AI */}
+      <section aria-label="Services Ligne 2">
         <div className="grid grid-cols-2 gap-3 sm:gap-4">
-
-          <IxIconOnlyShortcutCard
-            id="assistance"
-            module="assistance"
-            ariaLabel="Assistance"
-            tooltip="Assistance & Support voyageur 24h/7j"
-            emoji="🎧"
-            icon={HelpCircle}
-            onClick={onOpenLogin}
+          <IxCompactMenuCard
+            id="service-iptv"
+            module="iptv"
+            title="IPTV & VOD"
+            emoji="📺"
+            icon={Tv}
+            onClick={() => onExploreTab('iptv')}
           />
 
-          <IxIconOnlyShortcutCard
-            id="settings"
-            module="settings"
-            ariaLabel="Billetterie"
-            tooltip="Billetterie : mes pass et QR codes"
-            emoji="🎫"
-            icon={QrCode}
-            onClick={() => onExploreTab('transport')}
+          <IxCompactMenuCard
+            id="service-vision"
+            module="vision"
+            title="Vision AI"
+            emoji="🤖"
+            icon={Eye}
+            onClick={() => onExploreTab('vision')}
           />
-
         </div>
       </section>
 
-      {/* ================= 5. BANNIÈRE PROMOTIONNELLE 2 (SECONDE BANNIÈRE) ================= */}
+      {/* Bannière 2: Après la ligne 2 */}
       <IxPromoBanner
         title="Sécurité IA & Streaming 5G à bord de vos autocars"
         description="Caméras anti-collision en direct et chaînes TV nationales (RTI1, NCI) offertes sur tous les trajets."
         badgeText="Inclus à Bord"
         ctaText="Découvrir"
         onCtaClick={() => onExploreTab('iptv')}
+      />
+
+      {/* Ligne 3: Assistance & Billetterie */}
+      <section aria-label="Services Ligne 3">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">
+          <IxCompactMenuCard
+            id="service-assistance"
+            module="assistance"
+            title="Assistance"
+            emoji="🎧"
+            icon={HelpCircle}
+            onClick={onOpenLogin}
+          />
+
+          <IxCompactMenuCard
+            id="service-tickets"
+            module="settings"
+            title="Billetterie"
+            emoji="🎫"
+            icon={QrCode}
+            onClick={() => onExploreTab('transport')}
+          />
+        </div>
+      </section>
+
+      {/* Bannière 3: Après la ligne 3 (Avant la barre des sections) */}
+      <IxPromoBanner
+        title="Assistance & Support Voyageur 24/7"
+        description="Besoin d'aide ? Notre centre de support est disponible pour toutes vos questions de voyage."
+        badgeText="Aide en Direct"
+        ctaText="Nous contacter"
+        onCtaClick={onOpenLogin}
       />
 
       {/* ================= 3. CARROUSEL HORIZONTAL : PROMOTIONS & ANNONCES ================= */}

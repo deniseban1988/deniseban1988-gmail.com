@@ -9,10 +9,9 @@ let auth: Auth;
 let isFirebaseConfigured = false;
 
 // Détermination de l'ID de la base de données selon l'environnement
-const isProduction = import.meta.env.PROD;
-const FIRESTORE_DB_ID = isProduction 
-  ? (firebaseConfigJson.firestoreDatabaseId || '(default)')
-  : '(default)';
+// En DEV (preview), on force l'utilisation de la base isolée dev-ivoirexpress
+// En PROD (shared/deployed), on utilise la base par défaut (default)
+const FIRESTORE_DB_ID = import.meta.env.DEV ? 'dev-ivoirexpress' : '(default)';
 
 try {
   // Configuration Firebase dynamique chargée depuis firebase-applet-config.json

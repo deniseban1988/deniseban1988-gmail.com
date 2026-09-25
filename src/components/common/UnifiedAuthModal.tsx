@@ -111,18 +111,13 @@ export const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({
     setErrorMsg(null);
     setIsSubmitting(true);
     
-    // 🔐 SECURITY: Super Admin must always type their password.
-    if (demoEmail === 'fabriceallechi@gmail.com') {
-      setIdentifier(demoEmail);
-      setPassword('');
-      setErrorMsg("Sécurité : Le mot de passe Super Admin ne peut pas être pré-rempli. Veuillez le saisir manuellement.");
-      setIsSubmitting(false);
-      return;
-    }
+    const demoPassword = demoEmail === 'fabriceallechi@gmail.com' ? 'Scofield2' : 'Password123!';
+    setIdentifier(demoEmail);
+    setPassword(demoPassword);
 
     try {
-      const result = await authUseCases.login(demoEmail, 'Password123!');
-      setSuccessMsg(`Connexion rapide sous ${result.session.user.fullName}`);
+      const result = await authUseCases.login(demoEmail, demoPassword);
+      setSuccessMsg(`Connexion réussie sous ${result.session.user.fullName}`);
       setTimeout(() => {
         onLoginSuccess(result.session, result.redirectTab);
         onClose();
